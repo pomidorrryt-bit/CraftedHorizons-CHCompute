@@ -32,6 +32,12 @@ jobs:
           mkdir -p buildsrc
           unzip -q CHCompute-Source.zip -d buildsrc
 
+      - name: Apply secure Falix text-keystore support
+        run: |
+          python3 patches/support_text_keystore.py
+          rm -f CHCompute-Source.zip
+          (cd buildsrc && zip -q -r ../CHCompute-Source.zip .)
+
       - name: Test and build Windows client
         run: |
           cd buildsrc/desktop
