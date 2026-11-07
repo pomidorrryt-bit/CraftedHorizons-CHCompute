@@ -1,0 +1,82 @@
+name: Build and publish CH Compute
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Install Go 1.23
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.23.6'
+          check-latest: true
+
+      - name: Extract reviewed source package
+        run: |
+          mkdir -p buildsrc
+          unzip -q CHCompute-Source.zip -d buildsrc
+
+      - name: Test and build Windows client
+        run: |
+          cd buildsrc/desktop
+          go test ./...
+          GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -ldflags="-s -w -H windowsgui" -o ../../CHCompute-Windows.exe
+
+      - name: Build Paper plugin
+        run: |
+          cd buildsrc/plugin
+          chmod +x build-local.sh
+          ./build-local.sh
+          cp CHCompute-Paper-1.21.jar ../../CHCompute-Paper-1.21.jar
+
+      - name: Prepare archives and checksums
+        run: |
+          mkdir -p windows-package paper-package
+          cp CHCompute-Windows.exe windows-package/
+          cp buildsrc/docs/README_RU.md buildsrc/docs/README_EN.md buildsrc/LICENSE.txt windows-package/
+          cp CHCompute-Paper-1.21.jar paper-package/
+          cp buildsrc/docs/README_RU.md buildsrc/docs/README_EN.md buildsrc/LICENSE.txt paper-package/
+          cd windows-package && zip -q -r ../CHCompute-Windows.zip . && cd ..
+          cd paper-package && zip -q -r ../CHCompute-Paper.zip . && cd ..
+          sha256sum CHCompute-Windows.exe CHCompute-Windows.zip CHCompute-Paper-1.21.jar CHCompute-Paper.zip CHCompute-Source.zip > SHA256SUMS.txt
+
+      - name: Upload downloadable build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: CHCompute-v1.0.0
+          path: |
+            CHCompute-Windows.exe
+            CHCompute-Windows.zip
+            CHCompute-Paper-1.21.jar
+            CHCompute-Paper.zip
+            CHCompute-Source.zip
+            SHA256SUMS.txt
+          if-no-files-found: error
+
+      - name: Publish public download links
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release view v1.0.0 >/dev/null 2>&1; then
+            gh release upload v1.0.0 CHCompute-Windows.exe CHCompute-Windows.zip CHCompute-Paper-1.21.jar CHCompute-Paper.zip CHCompute-Source.zip SHA256SUMS.txt --clobber
+          else
+            gh release create v1.0.0 CHCompute-Windows.exe CHCompute-Windows.zip CHCompute-Paper-1.21.jar CHCompute-Paper.zip CHCompute-Source.zip SHA256SUMS.txt \
+              --title "CH Compute 1.0.0 (Experimental)" \
+              --notes "Experimental, voluntary auxiliary computing for Crafted Horizons. Not a TPS accelerator. Windows app and Paper plugin are untested end-to-end on Falix. Never publish server keys."
+          fi
