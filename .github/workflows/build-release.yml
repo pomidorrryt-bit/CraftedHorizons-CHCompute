@@ -35,6 +35,7 @@ jobs:
       - name: Apply secure Falix text-keystore support
         run: |
           python3 patches/support_text_keystore.py
+          python3 patches/fix_bukkit_event_signature.py
           rm -f CHCompute-Source.zip
           (cd buildsrc && zip -q -r ../CHCompute-Source.zip .)
 
