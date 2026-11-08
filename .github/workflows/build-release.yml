@@ -7,6 +7,7 @@ on:
 
 permissions:
   contents: write
+  issues: write
 
 jobs:
   package:
@@ -49,7 +50,8 @@ jobs:
         run: |
           cd buildsrc/plugin
           chmod +x build-local.sh
-          ./build-local.sh
+          set -o pipefail
+          ./build-local.sh 2>&1 | tee ../../paper-build.log
           cp CHCompute-Paper-1.21.jar ../../CHCompute-Paper-1.21.jar
 
       - name: Prepare archives and checksums
@@ -87,3 +89,25 @@ jobs:
               --title "CH Compute 1.0.0 (Experimental)" \
               --notes "Experimental, voluntary auxiliary computing for Crafted Horizons. Not a TPS accelerator. Windows app and Paper plugin are untested end-to-end on Falix. Never publish server keys."
           fi
+
+      - name: Publish build status for troubleshooting
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BUILD_RESULT: ${{ job.status }}
+        run: |
+          {
+            printf 'CHCompute build: **%s**\n' "$BUILD_RESULT"
+            printf 'Commit: %s\n' "$GITHUB_SHA"
+            echo '### Paper build log'
+            echo '~~~text'
+            if [[ -f paper-build.log ]]; then
+              tail -70 paper-build.log
+            else
+              echo 'No paper build log available.'
+            fi
+            echo '~~~'
+          } > build-status.md
+          gh issue create --repo "$GITHUB_REPOSITORY" \
+            --title "CHCompute-CI: ${GITHUB_SHA:0:12}" \
+            --body-file build-status.md
