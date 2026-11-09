@@ -1,0 +1,36 @@
+name: Publish Santa Totem resource pack
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'assets/santa_totem.png'
+      - 'tools/build_santa_totem_resourcepack.py'
+      - '.github/workflows/build-santa-totem-pack.yml'
+permissions:
+  contents: write
+  issues: write
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build and verify additive resource pack
+        run: python3 tools/build_santa_totem_resourcepack.py
+      - name: Publish public downloadable resource pack
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create ch-santa-totem-pack-v1 \
+            CHSantaTotem-1.21.11.zip CHSantaTotem-SHA1.txt \
+            --repo "$GITHUB_REPOSITORY" \
+            --title "Santa's Totem (Minecraft Java 1.21.11)" \
+            --notes 'Additional optional texture pack, compatible with the existing Santa Sword resource pack.'
+      - name: Report SHA1
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh issue create --repo "$GITHUB_REPOSITORY" \
+            --title 'CH-SANTA-TOTEM-PACK: ready' \
+            --body "Public pack: https://github.com/$GITHUB_REPOSITORY/releases/download/ch-santa-totem-pack-v1/CHSantaTotem-1.21.11.zip
+
+          SHA1: $(cut -d' ' -f1 CHSantaTotem-SHA1.txt)"
