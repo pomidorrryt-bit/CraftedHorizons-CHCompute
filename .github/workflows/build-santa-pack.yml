@@ -1,0 +1,43 @@
+name: Publish Santa Tree Sword resource pack
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'tools/build_santa_resourcepack.py'
+      - '.github/workflows/build-santa-pack.yml'
+permissions:
+  contents: write
+  issues: write
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Generate Minecraft Java 1.21.11 additive resource pack
+        run: python3 tools/build_santa_resourcepack.py
+      - name: Validate pack
+        run: |
+          python3 - <<'PY'
+          import zipfile, json
+          with zipfile.ZipFile('CHSantaSword-1.21.11.zip') as z:
+              assert z.testzip() is None
+              assert json.loads(z.read('pack.mcmeta'))['pack']['min_format'] == [75,0]
+              assert z.read('assets/craftedhorizons/textures/item/santa_tree_sword.png').startswith(bytes.fromhex('89504e47'))
+          PY
+      - name: Publish resource pack release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag=ch-santa-pack-v1
+          gh release create "$tag" CHSantaSword-1.21.11.zip CHSantaSword-SHA1.txt \
+            --repo "$GITHUB_REPOSITORY" --title 'CH Santa Tree Sword (Minecraft 1.21.11)' \
+            --notes 'One extra resource pack; does not replace other plugins resource packs. Includes a 32x64 pixel-art evergreen on a wooden handle.'
+      - name: Report SHA1 to owner
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh issue create --repo "$GITHUB_REPOSITORY" \
+            --title 'CH-SANTA-PACK: ready' \
+            --body "Public resource pack: https://github.com/$GITHUB_REPOSITORY/releases/download/ch-santa-pack-v1/CHSantaSword-1.21.11.zip
+
+          \`SHA1: $(cut -d' ' -f1 CHSantaSword-SHA1.txt)\`"
