@@ -1,0 +1,16 @@
+name: CraftedHorizonsRedstoneGuard
+version: '1.0.0'
+main: net.craftedhorizons.redstoneguard.RedstoneGuardPlugin
+api-version: '1.21'
+author: CraftedHorizons
+description: Local redstone clock cooldown and repeat-offense lightning removal.
+commands:
+  redstoneguard:
+    description: Show status or reload redstone protection.
+    usage: /redstoneguard [reload]
+    permission: redstoneguard.admin
+permissions:
+  redstoneguard.admin:
+    default: op
+  redstoneguard.alerts:
+    default: op

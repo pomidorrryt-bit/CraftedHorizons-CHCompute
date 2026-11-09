@@ -1,0 +1,14 @@
+# CraftedHorizons RedstoneGuard. Five rising signal ticks per second in
+# a local 8x8x8-block sector, sustained for at least half a second.
+signals-per-second: 5
+cooldown-seconds: 60
+destroy-on-repeat: true
+# Limit destruction to redstone wire, repeaters, comparators, observers and
+# redstone torches. Pistons, containers, building blocks and items are safe.
+destroy-radius: 6
+max-destroy-blocks: 96
+excluded-worlds:
+  - Spawn_1
+  - Spawn_Flat
+  - Tournament_1
+  - Tournament_2
